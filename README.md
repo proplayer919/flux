@@ -12,6 +12,8 @@
 - **Port Mapping**: Expose container ports to the host system
 - **Volume Mounting**: Mount host directories into containers
 - **Build State Management**: Resume interrupted builds with state persistence
+- **URL Downloads**: Download configurations and images directly from URLs
+- **Download History**: Track and manage downloaded files
 - **Rich CLI Interface**: Beautiful, user-friendly command-line interface using Rich
 
 ## 📋 Requirements
@@ -100,7 +102,44 @@ flux show mycontainer
 ### Delete a Configuration
 
 ```bash
-flux delete mycontainer
+python3 cli.py delete mycontainer
+```
+
+### Download from URLs
+
+#### Download a Configuration
+
+```bash
+# Download a configuration from a URL
+python3 cli.py download config https://example.com/config.json
+
+# Download with a custom name
+python3 cli.py download config https://example.com/config.json --name myconfig
+
+# Show download info before downloading
+python3 cli.py download config https://example.com/config.json --info
+
+# Force overwrite existing configuration
+python3 cli.py download config https://example.com/config.json --force
+```
+
+#### Download a Container Image
+
+```bash
+# Download a container image
+python3 cli.py download image https://example.com/image.tar.gz
+
+# Download with a custom name
+python3 cli.py download image https://example.com/image.tar.gz --name myimage.tar.gz
+
+# Show download info before downloading
+python3 cli.py download image https://example.com/image.tar.gz --info
+```
+
+#### View Download History
+
+```bash
+python3 cli.py download history
 ```
 
 ## 🏗️ Configuration Format
