@@ -1,6 +1,7 @@
 """
 Flux CLI - Main command line interface
 """
+
 import os
 import sys
 import click
@@ -400,21 +401,28 @@ def download():
 @download.command()
 @click.argument("url")
 @click.option("--name", "-n", help="Name to save the configuration as")
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing configuration without asking")
-@click.option("--info", "-i", is_flag=True, help="Show download info before downloading")
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Overwrite existing configuration without asking",
+)
+@click.option(
+    "--info", "-i", is_flag=True, help="Show download info before downloading"
+)
 def config(url, name, force, info):
     """Download a configuration file from a URL"""
     downloader = FluxDownloader()
-    
+
     if info:
         download_info = downloader.get_download_info(url)
         if not download_info:
             return
-        
+
         if not Confirm.ask("Proceed with download?", default=True):
             console.print("[yellow]Download cancelled[/yellow]")
             return
-    
+
     success = downloader.download_config(url, name, force)
     if not success:
         sys.exit(1)
@@ -423,21 +431,25 @@ def config(url, name, force, info):
 @download.command()
 @click.argument("url")
 @click.option("--name", "-n", help="Name to save the image as")
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing image without asking")
-@click.option("--info", "-i", is_flag=True, help="Show download info before downloading")
+@click.option(
+    "--force", "-f", is_flag=True, help="Overwrite existing image without asking"
+)
+@click.option(
+    "--info", "-i", is_flag=True, help="Show download info before downloading"
+)
 def image(url, name, force, info):
     """Download a container image from a URL"""
     downloader = FluxDownloader()
-    
+
     if info:
         download_info = downloader.get_download_info(url)
         if not download_info:
             return
-        
+
         if not Confirm.ask("Proceed with download?", default=True):
             console.print("[yellow]Download cancelled[/yellow]")
             return
-    
+
     success = downloader.download_image(url, name, force)
     if not success:
         sys.exit(1)
