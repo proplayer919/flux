@@ -7,5 +7,4 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Run the CLI
-cd "$FLUX_DIR" || exit 1
-python3 cli.py "$@"
+python3 /opt/pollypackages/flux/cli.py "$@"

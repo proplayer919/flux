@@ -1,6 +1,5 @@
 {
   "install": [
-    "export FLUX_DIR=$(pwd) && sed -i '1a\\export FLUX_DIR=\"'$FLUX_DIR'\"' flux.sh",
     "sudo cp flux.sh /usr/local/bin/flux",
     "sudo chmod +x /usr/local/bin/flux"
   ],
