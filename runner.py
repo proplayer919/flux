@@ -173,16 +173,36 @@ class ContainerRunner:
                 host_path, container_path = volume.split(":", 1)
                 cmd.extend(["--bind", f"{host_path}:{container_path}"])
 
+        # Add X11 forwarding if enabled
+        if config.allow_x11:
+            # Get DISPLAY environment variable
+            display = os.environ.get("DISPLAY", ":0")
+            cmd.extend(["--setenv", f"DISPLAY={display}"])
+
+            # Bind mount X11 socket
+            x11_socket = f"/tmp/.X11-unix"
+            if os.path.exists(x11_socket):
+                cmd.extend(["--bind", f"{x11_socket}:{x11_socket}"])
+
+            # Allow access to X11 (this requires xhost to be available on host)
+            # Note: We could run xhost +local: before container starts, but it's better
+            # to let the user handle X11 permissions as needed
+            console.print(
+                "[yellow]Note: X11 forwarding enabled. You may need to run 'xhost +local:' on the host if you encounter permission issues.[/yellow]"
+            )
+
         # Add shell
         cmd.append("/bin/bash")
 
         try:
             # Show container info panel
+            x11_status = "Enabled" if config.allow_x11 else "Disabled"
             info_panel = Panel(
                 f"[bold]Container: {config.name}[/bold]\n"
                 f"Distribution: {config.distribution} {config.version}\n"
                 f"User: {config.user}\n"
-                f"Working Directory: {config.working_dir}",
+                f"Working Directory: {config.working_dir}\n"
+                f"X11 Forwarding: {x11_status}",
                 title="Container Information",
                 border_style="green",
             )

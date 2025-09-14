@@ -141,7 +141,10 @@ def build_continue(continuation_code, verbose):
 @cli.command()
 @click.argument("config_name")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed command output")
-def run(config_name, verbose):
+@click.option(
+    "--allow-x11", is_flag=True, help="Enable X11 forwarding to the container"
+)
+def run(config_name, verbose, allow_x11):
     """Run a container from configuration"""
     console.print(f"[blue]Running container for: {config_name}[/blue]")
 
@@ -151,6 +154,10 @@ def run(config_name, verbose):
     if not config:
         console.print(f"[red]Configuration '{config_name}' not found[/red]")
         return
+
+    # Override allow_x11 setting if flag is provided
+    if allow_x11:
+        config.allow_x11 = True
 
     runner = ContainerRunner(verbose=verbose)
     try:
