@@ -11,6 +11,7 @@
 - **Environment Variables**: Configure environment variables for containers
 - **Port Mapping**: Expose container ports to the host system
 - **Volume Mounting**: Mount host directories into containers
+- **X11 Forwarding**: Run GUI applications inside containers with X11 support
 - **Build State Management**: Resume interrupted builds with state persistence
 - **URL Downloads**: Download configurations and images directly from URLs
 - **Download History**: Track and manage downloaded files
@@ -74,6 +75,7 @@ This will start an interactive session where you can configure:
 - Port mappings
 - Volume mounts
 - User settings
+- X11 forwarding for GUI applications
 
 ### List Configurations
 
@@ -91,6 +93,26 @@ sudo flux build mycontainer
 
 ```bash
 sudo flux run mycontainer
+```
+
+#### Run with X11 Forwarding
+
+To run GUI applications inside the container, use the `--allow-x11` flag:
+
+```bash
+sudo flux run mycontainer --allow-x11
+```
+
+This enables X11 forwarding, allowing you to run graphical applications from within the container. The container will have access to your host's X11 display server.
+
+**Note**: You may need to grant X11 access permissions on your host system:
+
+```bash
+# Allow local connections to X11 server
+xhost +local:
+
+# To restore security after use (optional)
+xhost -local:
 ```
 
 ### Show Configuration Details
@@ -176,6 +198,7 @@ Configurations are stored as JSON files in the `configs/` directory. Here's an e
   "volumes": ["/home/user/projects:/workspace"],
   "user": "developer",
   "working_dir": "/workspace",
+  "allow_x11": false,
   "created_at": "2025-09-14T14:57:01.925702"
 }
 ```
@@ -200,6 +223,79 @@ Flux automatically saves build state, allowing you to resume interrupted builds:
 # If a build fails or is interrupted, Flux will give a "continue code", which you can use to continue from where you left off once the error is fixed.
 sudo flux build-continue <code>
 ```
+
+### X11 Forwarding for GUI Applications
+
+Flux supports X11 forwarding to run graphical applications inside containers. This feature allows you to use GUI programs like web browsers, text editors, or development tools from within the container environment.
+
+#### Enabling X11 Forwarding
+
+You can enable X11 forwarding in two ways:
+
+1. **At runtime** using the `--allow-x11` flag:
+
+   ```bash
+   sudo flux run mycontainer --allow-x11
+   ```
+
+2. **In the configuration** by setting `allow_x11` to `true`:
+
+   ```json
+   {
+     "name": "gui-container",
+     "distribution": "ubuntu",
+     "version": "24.04",
+     "allow_x11": true,
+     "packages": ["firefox", "gedit", "xterm"]
+   }
+   ```
+
+#### Prerequisites
+
+Before using X11 forwarding, ensure you have:
+
+- An X11 server running on your host (usually automatic in desktop environments)
+- The `DISPLAY` environment variable set (usually `:0` or `:1`)
+
+#### Granting X11 Access
+
+For security reasons, you may need to grant the container access to your X11 server:
+
+```bash
+# Allow local connections (required before running container)
+xhost +local:
+
+# Run your container with X11 forwarding
+sudo flux run mycontainer --allow-x11
+
+# Optionally restore X11 security after use
+xhost -local:
+```
+
+#### Common X11 Applications
+
+Here are some popular GUI applications you can install and run:
+
+```json
+{
+  "packages": [
+    "firefox",           // Web browser
+    "code",              // VS Code (requires Microsoft repo)
+    "gedit",             // Text editor
+    "nautilus",          // File manager
+    "gnome-terminal",    // Terminal emulator
+    "gimp",              // Image editor
+    "libreoffice",       // Office suite
+    "vlc"                // Media player
+  ]
+}
+```
+
+#### Troubleshooting X11
+
+- **"Cannot connect to display"**: Ensure `DISPLAY` is set and X11 server is running
+- **Permission denied**: Run `xhost +local:` to grant access
+- **Applications won't start**: Check if the application requires additional packages or fonts
 
 ### Custom Package Sources
 
