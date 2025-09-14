@@ -15,7 +15,6 @@ from rich.progress import (
     Progress,
     DownloadColumn,
     BarColumn,
-    TaskProgressColumn,
     TimeRemainingColumn,
 )
 from rich.panel import Panel

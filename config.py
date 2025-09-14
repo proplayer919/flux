@@ -31,7 +31,7 @@ class ContainerConfig(BaseModel):
     
     @validator('distribution')
     def validate_distribution(cls, v):
-        supported_distros = ['ubuntu', 'debian', 'fedora', 'centos', 'alpine']
+        supported_distros = ['ubuntu', 'debian']
         if v.lower() not in supported_distros:
             raise ValueError(f"Unsupported distribution. Supported: {', '.join(supported_distros)}")
         return v.lower()
@@ -67,7 +67,7 @@ class ConfigManager:
             architecture = self._prompt_architecture()
             
             # Package selection
-            packages = self._prompt_packages()
+            packages = self._prompt_packages(distribution)
             
             # Advanced options
             if Confirm.ask("Configure advanced options?", default=False):
@@ -114,7 +114,7 @@ class ConfigManager:
     
     def _prompt_distribution(self) -> str:
         """Prompt for Linux distribution"""
-        distros = ["ubuntu", "debian", "fedora", "centos", "alpine"]
+        distros = ["ubuntu", "debian"]
         
         console.print("[blue]Available distributions:[/blue]")
         for i, distro in enumerate(distros, 1):
@@ -128,10 +128,7 @@ class ConfigManager:
         """Prompt for distribution version"""
         version_map = {
             "ubuntu": ["22.04", "20.04", "18.04", "24.04"],
-            "debian": ["12", "11", "10", "bookworm", "bullseye"],
-            "fedora": ["39", "38", "37"],
-            "centos": ["8", "7"],
-            "alpine": ["3.18", "3.17", "latest"]
+            "debian": ["12", "11", "10", "bookworm", "bullseye"]
         }
         
         versions = version_map.get(distribution, ["latest"])
@@ -154,7 +151,7 @@ class ConfigManager:
         choice = Prompt.ask("Select architecture", choices=[str(i) for i in range(1, len(archs) + 1)], default="1")
         return archs[int(choice) - 1]
     
-    def _prompt_packages(self) -> List[str]:
+    def _prompt_packages(self, distribution: str) -> List[str]:
         """Prompt for packages to install"""
         packages = []
         
@@ -164,16 +161,11 @@ class ConfigManager:
         # Common package suggestions
         suggestions = {
             "ubuntu": ["curl", "wget", "git", "vim", "htop", "build-essential"],
-            "debian": ["curl", "wget", "git", "vim", "htop", "build-essential"],
-            "fedora": ["curl", "wget", "git", "vim", "htop", "gcc"],
-            "centos": ["curl", "wget", "git", "vim", "htop", "gcc"],
-            "alpine": ["curl", "wget", "git", "vim", "htop", "build-base"]
+            "debian": ["curl", "wget", "git", "vim", "htop", "build-essential"]
         }
         
         if Confirm.ask("Install common packages?", default=True):
-            # This would be set based on the distribution chosen earlier
-            # For now, using ubuntu as default
-            common_packages = suggestions.get("ubuntu", [])
+            common_packages = suggestions.get(distribution, [])
             packages.extend(common_packages)
             console.print(f"Added common packages: {', '.join(common_packages)}")
         
