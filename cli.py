@@ -350,7 +350,12 @@ def ps():
 
     console.print("[blue]Running containers:[/blue]")
     for container in containers:
-        console.print(f"  • {container['name']} ({container['class']})")
+        config_info = (
+            f"config: {container.get('config', 'unknown')}"
+            if "config" in container
+            else container["class"]
+        )
+        console.print(f"  • {container['name']} ({config_info})")
 
 
 @cli.command()

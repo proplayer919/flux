@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import signal
 import atexit
+import uuid
 from pathlib import Path
 from typing import Optional
 from rich.console import Console
@@ -136,6 +137,10 @@ class ContainerRunner:
 
         rootfs_path = Path(temp_dir) / "rootfs"
 
+        # Generate unique machine name to allow multiple instances
+        unique_id = str(uuid.uuid4())[:8]
+        machine_name = f"flux-{config.name}-{unique_id}"
+
         # Build systemd-nspawn command
         cmd = [
             "sudo",
@@ -143,7 +148,7 @@ class ContainerRunner:
             "--directory",
             str(rootfs_path),
             "--machine",
-            f"flux-{config.name}",
+            machine_name,
         ]
 
         # Add user if specified
@@ -247,9 +252,28 @@ class ContainerRunner:
                 if line.strip() and "flux-" in line:
                     parts = line.split()
                     if len(parts) >= 2:
+                        machine_name = parts[0]
+                        # Extract config name from machine name (flux-{config}-{uuid})
+                        if machine_name.startswith("flux-"):
+                            # Split by dash and take all parts except the last one (UUID)
+                            name_parts = machine_name.split("-")
+                            if len(name_parts) >= 3:
+                                config_name = "-".join(
+                                    name_parts[1:-1]
+                                )  # Everything between flux- and -uuid
+                            else:
+                                config_name = (
+                                    name_parts[1]
+                                    if len(name_parts) > 1
+                                    else machine_name
+                                )
+                        else:
+                            config_name = machine_name
+
                         containers.append(
                             {
-                                "name": parts[0],
+                                "name": machine_name,
+                                "config": config_name,
                                 "class": parts[1] if len(parts) > 1 else "container",
                             }
                         )
