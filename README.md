@@ -1,0 +1,261 @@
+# Flux
+
+> Interactive Linux Container Configuration
+
+## 🚀 Features
+
+- **Interactive Configuration**: Step-by-step guided setup for container configurations
+- **Multiple Linux Distributions**: Support for Ubuntu, Debian, Fedora, CentOS, and Alpine
+- **Package Management**: Easy installation of packages during container creation
+- **Custom Commands**: Execute custom commands during the build process
+- **Environment Variables**: Configure environment variables for containers
+- **Port Mapping**: Expose container ports to the host system
+- **Volume Mounting**: Mount host directories into containers
+- **Build State Management**: Resume interrupted builds with state persistence
+- **Rich CLI Interface**: Beautiful, user-friendly command-line interface using Rich
+
+## 📋 Requirements
+
+### System Requirements
+
+- Linux operating system
+- Root/sudo privileges
+- Python 3.8+
+- `debootstrap` (for building container images)
+- `systemd-container` (for running containers with systemd-nspawn)
+
+### Installation Dependencies
+
+#### Ubuntu/Debian
+
+```bash
+sudo apt update
+sudo apt install debootstrap systemd-container python3 python3-pip
+```
+
+#### Fedora/CentOS
+
+```bash
+sudo dnf install debootstrap systemd-container python3 python3-pip
+# or for older versions
+sudo yum install debootstrap systemd-container python3 python3-pip
+```
+
+#### Arch Linux
+
+```bash
+sudo pacman -S debootstrap systemd python python-pip
+```
+
+## 🛠️ Installation
+
+1. **If not installed, install [Polly](https://github.com/pollypm/polly) using the instructions in their repository.**
+2. **Run `polly install https://github.com/proplayer919/flux.git`**
+
+## 📖 Usage
+
+Flux provides several commands to manage container configurations:
+
+### Create a New Configuration
+
+```bash
+sudo flux create --name mycontainer
+```
+
+This will start an interactive session where you can configure:
+
+- Linux distribution and version
+- Target architecture
+- Packages to install
+- Custom commands to execute
+- Environment variables
+- Port mappings
+- Volume mounts
+- User settings
+
+### List Configurations
+
+```bash
+flux list
+```
+
+### Build a Container Image
+
+```bash
+sudo flux build mycontainer
+```
+
+### Run a Container
+
+```bash
+sudo flux run mycontainer
+```
+
+### Show Configuration Details
+
+```bash
+flux show mycontainer
+```
+
+### Delete a Configuration
+
+```bash
+flux delete mycontainer
+```
+
+## 🏗️ Configuration Format
+
+Configurations are stored as JSON files in the `configs/` directory. Here's an example configuration:
+
+```json
+{
+  "name": "development",
+  "distribution": "ubuntu",
+  "version": "24.04",
+  "architecture": "amd64",
+  "packages": [
+    "curl",
+    "wget",
+    "git",
+    "vim",
+    "htop",
+    "build-essential",
+    "python3",
+    "python3-pip",
+    "nodejs",
+    "npm"
+  ],
+  "custom_commands": [
+    "useradd -m developer",
+    "echo 'developer ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers"
+  ],
+  "environment_vars": {
+    "NODE_ENV": "development",
+    "PATH": "/usr/local/bin:/usr/bin:/bin"
+  },
+  "ports": [3000, 8080],
+  "volumes": ["/home/user/projects:/workspace"],
+  "user": "developer",
+  "working_dir": "/workspace",
+  "created_at": "2025-09-14T14:57:01.925702"
+}
+```
+
+## 🐧 Supported Distributions
+
+| Distribution | Versions            | Architecture Support |
+| ------------ | ------------------- | -------------------- |
+| Ubuntu       | 20.04, 22.04, 24.04 | amd64, arm64         |
+| Debian       | 11, 12              | amd64, arm64, i386   |
+| Fedora       | 38, 39, 40          | amd64, arm64         |
+| CentOS       | 8, 9                | amd64, arm64         |
+| Alpine       | 3.18, 3.19          | amd64, arm64         |
+
+## 🔧 Advanced Usage
+
+### Build State Management
+
+Flux automatically saves build state, allowing you to resume interrupted builds:
+
+```bash
+# If a build fails or is interrupted, Flux will give a "continue code", which you can use to continue from where you left off once the error is fixed.
+sudo flux build-continue <code>
+```
+
+### Custom Package Sources
+
+For Debian/Ubuntu containers, you can configure custom package sources by adding them to custom commands:
+
+```json
+{
+  "custom_commands": [
+    "echo 'deb http://ppa.launchpad.net/custom/ppa/ubuntu focal main' > /etc/apt/sources.list.d/custom.list",
+    "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys KEYID",
+    "apt update"
+  ]
+}
+```
+
+## 🏗️ Architecture
+
+Flux consists of several key components:
+
+- **CLI (`cli.py`)**: Command-line interface using Click framework
+- **Config Manager (`config.py`)**: Handles configuration creation, validation, and management
+- **Image Builder (`builder.py`)**: Builds container images using debootstrap
+- **Container Runner (`runner.py`)**: Runs containers using systemd-nspawn
+- **Shell Script (`flux.sh`)**: Wrapper script for elevated permissions
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development Setup
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-amazing-feature`
+3. Make your changes and add tests
+4. Commit your changes: `git commit -m 'Add amazing feature'`
+5. Push to the branch: `git push origin feature-amazing-feature`
+6. Open a Pull Request
+
+### Code Style
+
+- Follow PEP 8 for Python code
+- Use type hints where appropriate
+- Add docstrings to all functions and classes
+- Keep functions small and focused
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### Permission Denied
+
+```bash
+# Ensure you're running with sudo for build/run operations
+sudo flux build mycontainer
+```
+
+#### Debootstrap Not Found
+
+```bash
+# Install debootstrap
+sudo apt install debootstrap  # Ubuntu/Debian
+sudo dnf install debootstrap  # Fedora
+```
+
+#### systemd-nspawn Not Found
+
+```bash
+# Install systemd-container
+sudo apt install systemd-container  # Ubuntu/Debian
+sudo dnf install systemd-container   # Fedora
+```
+
+#### Build Failures
+
+- Check internet connectivity for package downloads
+- Verify the distribution and version are correct
+- Check disk space in the build directory
+- Review custom commands for syntax errors
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [debootstrap](https://wiki.debian.org/Debootstrap) for Linux root filesystem creation
+- [systemd-nspawn](https://www.freedesktop.org/software/systemd/man/systemd-nspawn.html) for container runtime
+- [Rich](https://github.com/Textualize/rich) for beautiful terminal interfaces
+- [Click](https://click.palletsprojects.com/) for command-line interface framework
+- [Pydantic](https://pydantic-docs.helpmanual.io/) for data validation
+
+## 🔗 Links
+
+- [Issue Tracker](https://github.com/proplayer919/flux/issues)
+
+---
+
+**Flux** - Making Linux container creation simple and interactive.
