@@ -256,7 +256,7 @@ class ContainerRunner:
         exit(0)
 
     def list_running_containers(self) -> list:
-        """List running flux containers"""
+        """List running flux containers with resource usage"""
         try:
             result = subprocess.run(
                 ["sudo", "machinectl", "list"],
@@ -290,11 +290,22 @@ class ContainerRunner:
                         else:
                             config_name = machine_name
 
+                        # Get resource usage for this container
+                        resource_usage = self.get_container_resource_usage(machine_name)
+
                         containers.append(
                             {
                                 "name": machine_name,
                                 "config": config_name,
                                 "class": parts[1] if len(parts) > 1 else "container",
+                                "cpu_percent": resource_usage.get("cpu_percent", "N/A"),
+                                "memory_usage": resource_usage.get(
+                                    "memory_usage", "N/A"
+                                ),
+                                "memory_percent": resource_usage.get(
+                                    "memory_percent", "N/A"
+                                ),
+                                "disk_usage": resource_usage.get("disk_usage", "N/A"),
                             }
                         )
 
@@ -335,3 +346,213 @@ class ContainerRunner:
 
         except subprocess.CalledProcessError:
             return None
+
+    def get_container_resource_usage(self, container_name: str) -> dict:
+        """Get CPU, RAM, and disk usage for a container"""
+        resource_info = {
+            "cpu_percent": "N/A",
+            "memory_usage": "N/A",
+            "memory_percent": "N/A",
+            "disk_usage": "N/A",
+        }
+
+        try:
+            # Get container PID using machinectl
+            result = subprocess.run(
+                ["sudo", "machinectl", "show", container_name, "--property=Leader"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            leader_pid = None
+            for line in result.stdout.strip().split("\n"):
+                if line.startswith("Leader="):
+                    leader_pid = line.split("=", 1)[1]
+                    break
+
+            if not leader_pid or leader_pid == "0":
+                return resource_info
+
+            # Get CPU usage using systemctl and the container's service
+            try:
+                cpu_result = subprocess.run(
+                    [
+                        "sudo",
+                        "systemctl",
+                        "show",
+                        f"systemd-nspawn@{container_name}.service",
+                        "--property=CPUUsageNSec",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+
+                # For CPU percentage, we'll need to calculate it differently
+                # Let's use a simpler approach with /proc/stat for the container's cgroup
+                cpu_usage = self._get_container_cpu_usage(container_name)
+                if cpu_usage is not None:
+                    resource_info["cpu_percent"] = f"{cpu_usage:.1f}%"
+
+            except subprocess.CalledProcessError:
+                pass
+
+            # Get memory usage from cgroup
+            memory_usage = self._get_container_memory_usage(container_name)
+            if memory_usage:
+                resource_info.update(memory_usage)
+
+            # Get disk usage for container's temporary directory
+            disk_usage = self._get_container_disk_usage(container_name)
+            if disk_usage:
+                resource_info["disk_usage"] = disk_usage
+
+        except subprocess.CalledProcessError:
+            pass
+
+        return resource_info
+
+    def _get_container_cpu_usage(self, container_name: str) -> Optional[float]:
+        """Get CPU usage percentage for container"""
+        try:
+            # Try to get CPU usage from systemd cgroup
+            cgroup_path = (
+                f"/sys/fs/cgroup/system.slice/systemd-nspawn@{container_name}.service"
+            )
+
+            if os.path.exists(f"{cgroup_path}/cpu.stat"):
+                # Read CPU stats from cgroup v2
+                with open(f"{cgroup_path}/cpu.stat", "r") as f:
+                    content = f.read()
+                    for line in content.split("\n"):
+                        if line.startswith("usage_usec"):
+                            usage_usec = int(line.split()[1])
+                            # This is cumulative, so we'd need to calculate delta
+                            # For now, return a simple estimate
+                            return min(usage_usec / 10000, 100.0)
+
+            # Alternative: try cgroup v1 path
+            cgroup_v1_path = f"/sys/fs/cgroup/cpu/system.slice/systemd-nspawn@{container_name}.service"
+            if os.path.exists(f"{cgroup_v1_path}/cpuacct.usage"):
+                with open(f"{cgroup_v1_path}/cpuacct.usage", "r") as f:
+                    usage_ns = int(f.read().strip())
+                    # Simple estimation - this is cumulative usage
+                    return min(
+                        usage_ns / 1000000000, 100.0
+                    )  # Convert to rough percentage
+
+            return None
+        except (FileNotFoundError, ValueError, PermissionError):
+            return None
+
+    def _get_container_memory_usage(self, container_name: str) -> dict:
+        """Get memory usage for container"""
+        memory_info = {}
+
+        try:
+            # Try cgroup v2 first
+            cgroup_path = (
+                f"/sys/fs/cgroup/system.slice/systemd-nspawn@{container_name}.service"
+            )
+
+            if os.path.exists(f"{cgroup_path}/memory.current"):
+                with open(f"{cgroup_path}/memory.current", "r") as f:
+                    current_bytes = int(f.read().strip())
+                    memory_info["memory_usage"] = self._format_bytes(current_bytes)
+
+                # Try to get memory limit
+                if os.path.exists(f"{cgroup_path}/memory.max"):
+                    with open(f"{cgroup_path}/memory.max", "r") as f:
+                        max_bytes = f.read().strip()
+                        if max_bytes != "max":
+                            max_bytes = int(max_bytes)
+                            percentage = (current_bytes / max_bytes) * 100
+                            memory_info["memory_percent"] = f"{percentage:.1f}%"
+                        else:
+                            # No limit set, calculate against system memory
+                            try:
+                                with open("/proc/meminfo", "r") as meminfo:
+                                    for line in meminfo:
+                                        if line.startswith("MemTotal:"):
+                                            total_kb = (
+                                                int(line.split()[1]) * 1024
+                                            )  # Convert to bytes
+                                            percentage = (
+                                                current_bytes / total_kb
+                                            ) * 100
+                                            memory_info["memory_percent"] = (
+                                                f"{percentage:.1f}%"
+                                            )
+                                            break
+                            except:
+                                pass
+            else:
+                # Try cgroup v1
+                cgroup_v1_path = f"/sys/fs/cgroup/memory/system.slice/systemd-nspawn@{container_name}.service"
+                if os.path.exists(f"{cgroup_v1_path}/memory.usage_in_bytes"):
+                    with open(f"{cgroup_v1_path}/memory.usage_in_bytes", "r") as f:
+                        current_bytes = int(f.read().strip())
+                        memory_info["memory_usage"] = self._format_bytes(current_bytes)
+
+                    # Try to get memory limit
+                    if os.path.exists(f"{cgroup_v1_path}/memory.limit_in_bytes"):
+                        with open(f"{cgroup_v1_path}/memory.limit_in_bytes", "r") as f:
+                            limit_bytes = int(f.read().strip())
+                            # Check if limit is reasonable (not max value)
+                            if limit_bytes < (1 << 62):  # Reasonable limit
+                                percentage = (current_bytes / limit_bytes) * 100
+                                memory_info["memory_percent"] = f"{percentage:.1f}%"
+
+        except (FileNotFoundError, ValueError, PermissionError):
+            pass
+
+        return memory_info
+
+    def _get_container_disk_usage(self, container_name: str) -> Optional[str]:
+        """Get disk usage for container's temporary files"""
+        try:
+            # Try to find the container's mount point or temporary directory
+            result = subprocess.run(
+                [
+                    "sudo",
+                    "machinectl",
+                    "show",
+                    container_name,
+                    "--property=RootDirectory",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            root_dir = None
+            for line in result.stdout.strip().split("\n"):
+                if line.startswith("RootDirectory="):
+                    root_dir = line.split("=", 1)[1]
+                    break
+
+            if root_dir and os.path.exists(root_dir):
+                # Get disk usage of the container's root directory
+                usage_result = subprocess.run(
+                    ["sudo", "du", "-sh", root_dir],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                if usage_result.stdout:
+                    disk_usage = usage_result.stdout.split()[0]
+                    return disk_usage
+
+            return None
+
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return None
+
+    def _format_bytes(self, bytes_value: int) -> str:
+        """Format bytes in human readable format"""
+        for unit in ["B", "KB", "MB", "GB"]:
+            if bytes_value < 1024.0:
+                return f"{bytes_value:.1f}{unit}"
+            bytes_value /= 1024.0
+        return f"{bytes_value:.1f}TB"

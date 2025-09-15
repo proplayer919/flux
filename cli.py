@@ -210,7 +210,9 @@ def images():
 
 @cli.command()
 def ps():
-    """List running containers"""
+    """List running containers with resource usage"""
+    from rich.table import Table
+
     runner = ContainerRunner()
     containers = runner.list_running_containers()
 
@@ -218,14 +220,26 @@ def ps():
         console.print("[yellow]No running containers[/yellow]")
         return
 
-    console.print("[blue]Running containers:[/blue]")
+    # Create a table with resource usage columns
+    table = Table(title="Running Flux Containers")
+    table.add_column("Container Name", style="cyan", no_wrap=True)
+    table.add_column("Config", style="green")
+    table.add_column("CPU %", style="yellow", justify="right")
+    table.add_column("Memory Usage", style="blue", justify="right")
+    table.add_column("Memory %", style="blue", justify="right")
+    table.add_column("Disk Usage", style="magenta", justify="right")
+
     for container in containers:
-        config_info = (
-            f"config: {container.get('config', 'unknown')}"
-            if "config" in container
-            else container["class"]
+        table.add_row(
+            container["name"],
+            container.get("config", "unknown"),
+            container.get("cpu_percent", "N/A"),
+            container.get("memory_usage", "N/A"),
+            container.get("memory_percent", "N/A"),
+            container.get("disk_usage", "N/A"),
         )
-        console.print(f"  • {container['name']} ({config_info})")
+
+    console.print(table)
 
 
 @cli.command()
