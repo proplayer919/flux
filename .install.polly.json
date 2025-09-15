@@ -1,5 +1,6 @@
 {
   "install": [
+    "sudo pip install --break-system-packages -r requirements.txt",
     "sudo cp flux.sh /usr/local/bin/flux",
     "sudo chmod +x /usr/local/bin/flux"
   ],
