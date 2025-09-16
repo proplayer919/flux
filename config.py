@@ -322,13 +322,36 @@ class ConfigManager:
         return sorted(configs)
 
     def delete_config(self, name: str) -> bool:
-        """Delete a configuration"""
+        """Delete a configuration and all its associated images"""
         config_file = self.config_dir / f"{name}.json"
 
-        if config_file.exists():
-            config_file.unlink()
-            return True
-        return False
+        if not config_file.exists():
+            return False
+
+        # Load the configuration to get the image naming pattern
+        config = self.load_config(name)
+
+        # Delete the configuration file
+        config_file.unlink()
+
+        # Delete associated images if config was loaded successfully
+        if config:
+            from builder import ImageBuilder
+
+            builder = ImageBuilder()
+
+            # Generate the expected image name pattern
+            image_name = f"{config.name}-{config.distribution}-{config.version}.tar.gz"
+
+            # Delete the image if it exists
+            if builder.delete_image(image_name):
+                console.print(
+                    f"[yellow]Also deleted associated image: {image_name}[/yellow]"
+                )
+            else:
+                console.print(f"[dim]No associated image found: {image_name}[/dim]")
+
+        return True
 
     def display_config(self, config: ContainerConfig):
         """Display configuration in a formatted table"""

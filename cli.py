@@ -187,9 +187,11 @@ def show(config_name):
 
 @cli.command()
 @click.argument("config_name")
-@click.confirmation_option(prompt="Are you sure you want to delete this configuration?")
+@click.confirmation_option(
+    prompt="Are you sure you want to delete this configuration and its images?"
+)
 def delete(config_name):
-    """Delete a configuration"""
+    """Delete a configuration and all its associated images"""
     config_manager = ConfigManager()
     if config_manager.delete_config(config_name):
         console.print(f"[green]✓ Configuration '{config_name}' deleted[/green]")

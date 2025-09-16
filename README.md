@@ -142,6 +142,8 @@ flux show mycontainer
 flux delete mycontainer
 ```
 
+This will delete the configuration and all its associated built images.
+
 ### Pull Container Images
 
 ```bash
