@@ -248,7 +248,5 @@ secrets/
 # Flux-specific
 configs/
 images/
-
-# Download history and tracking
-.downloads/
+downloads/
 download_history.json
