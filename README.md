@@ -1,6 +1,6 @@
 # Flux
 
-> Interactive Linux Container Configuration
+> Create and Manage Linux Containers the Easy Way!
 
 ## 🚀 Features
 

@@ -22,13 +22,13 @@ console = Console()
 def print_banner():
     """Print the Flux banner"""
     banner = Text("FLUX", style="bold blue")
-    subtitle = Text("Interactive Linux Container Configuration Tool", style="dim")
+    subtitle = Text("Create and Manage Linux Containers the Easy Way!", style="dim")
     console.print(Panel.fit(f"{banner}\n{subtitle}", border_style="blue"))
 
 
 @click.group()
 def cli():
-    """Flux - Interactive Linux Container Configuration Tool"""
+    """Flux - Create and Manage Linux Containers the Easy Way!"""
     print_banner()
 
 
