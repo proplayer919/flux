@@ -144,7 +144,12 @@ def build_continue(continuation_code, verbose):
 @click.option(
     "--allow-x11", is_flag=True, help="Enable X11 forwarding to the container"
 )
-def run(config_name, verbose, allow_x11):
+@click.option(
+    "--pipe-terminal",
+    is_flag=True,
+    help="Use piped terminal mode for better I/O performance (default: interactive)",
+)
+def run(config_name, verbose, allow_x11, pipe_terminal):
     """Run a container from configuration"""
     console.print(f"[blue]Running container for: {config_name}[/blue]")
 
@@ -159,7 +164,7 @@ def run(config_name, verbose, allow_x11):
     if allow_x11:
         config.allow_x11 = True
 
-    runner = ContainerRunner(verbose=verbose)
+    runner = ContainerRunner(verbose=verbose, pipe_terminal=pipe_terminal)
     try:
         runner.run_container(config)
     except Exception as e:

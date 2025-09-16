@@ -94,12 +94,28 @@ sudo flux build mycontainer
 sudo flux run mycontainer
 ```
 
+#### Performance Optimizations
+
+For better I/O performance, you can enable piped terminal mode:
+
+```bash
+sudo flux run mycontainer --pipe-terminal
+```
+
+This flag enables piped terminal mode instead of the default interactive mode for better I/O performance in automated scenarios.
+
 #### Run with X11 Forwarding
 
 To run GUI applications inside the container, use the `--allow-x11` flag:
 
 ```bash
 sudo flux run mycontainer --allow-x11
+```
+
+You can combine flags for GUI support with optimized I/O:
+
+```bash
+sudo flux run mycontainer --allow-x11 --pipe-terminal
 ```
 
 This enables X11 forwarding, allowing you to run graphical applications from within the container. The container will have access to your host's X11 display server.

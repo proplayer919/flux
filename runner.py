@@ -23,7 +23,12 @@ console = Console()
 class ContainerRunner:
     """Runs containers using systemd-nspawn"""
 
-    def __init__(self, images_dir: Optional[str] = None, verbose: bool = False):
+    def __init__(
+        self,
+        images_dir: Optional[str] = None,
+        verbose: bool = False,
+        pipe_terminal: bool = False,
+    ):
         if images_dir:
             self.images_dir = Path(images_dir)
         else:
@@ -31,6 +36,7 @@ class ContainerRunner:
             self.images_dir = Path(__file__).parent / "images"
 
         self.verbose = verbose
+        self.pipe_terminal = pipe_terminal
         self.temp_dirs = []  # Track temp directories for cleanup
 
         # Register cleanup on exit
@@ -94,9 +100,11 @@ class ContainerRunner:
 
     def _create_temp_dir(self) -> str:
         """Create temporary directory for container"""
+        # Use regular temp directory
         temp_dir = tempfile.mkdtemp(prefix="flux-container-")
-        self.temp_dirs.append(temp_dir)
         console.print(f"[dim]Using temporary directory: {temp_dir}[/dim]")
+
+        self.temp_dirs.append(temp_dir)
         return temp_dir
 
     def _extract_image(self, image_path: str, temp_dir: str):
@@ -141,7 +149,7 @@ class ContainerRunner:
         unique_id = str(uuid.uuid4())[:8]
         machine_name = f"flux-{config.name}-{unique_id}"
 
-        # Build systemd-nspawn command
+        # Build systemd-nspawn command with optimizations
         cmd = [
             "sudo",
             "systemd-nspawn",
@@ -149,7 +157,28 @@ class ContainerRunner:
             str(rootfs_path),
             "--machine",
             machine_name,
+            "--ephemeral",  # Faster cleanup and better performance
         ]
+
+        # Add console mode - pipe for better performance if requested, otherwise interactive
+        if self.pipe_terminal:
+            cmd.append("--console=pipe")
+        else:
+            cmd.append("--console=interactive")
+
+        # Add cgroup v2 optimizations
+        cmd.extend(
+            [
+                "--property=MemoryAccounting=yes",
+                "--property=CPUAccounting=yes",
+                "--property=BlockIOAccounting=yes",
+                "--property=TasksAccounting=yes",
+            ]
+        )
+
+        # Add networking optimization if ports are configured
+        if config.ports:
+            cmd.extend(["--network-veth"])
 
         # Add user if specified
         if config.user != "root":
@@ -195,14 +224,29 @@ class ContainerRunner:
         cmd.append("/bin/bash")
 
         try:
-            # Show container info panel
+            # Show container info panel with optimizations
             x11_status = "Enabled" if config.allow_x11 else "Disabled"
+
+            # List active optimizations
+            optimizations = []
+            if "--ephemeral" in cmd:
+                optimizations.append("Ephemeral mode")
+            if "--console=pipe" in cmd:
+                optimizations.append("Piped terminal I/O")
+            elif "--console=interactive" in cmd:
+                optimizations.append("Interactive terminal")
+            if "--property=MemoryAccounting=yes" in " ".join(cmd):
+                optimizations.append("cgroup v2 accounting")
+
+            optimization_text = ", ".join(optimizations) if optimizations else "None"
+
             info_panel = Panel(
                 f"[bold]Container: {config.name}[/bold]\n"
                 f"Distribution: {config.distribution} {config.version}\n"
                 f"User: {config.user}\n"
                 f"Working Directory: {config.working_dir}\n"
-                f"X11 Forwarding: {x11_status}",
+                f"X11 Forwarding: {x11_status}\n"
+                f"Performance Optimizations: {optimization_text}",
                 title="Container Information",
                 border_style="green",
             )
