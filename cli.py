@@ -281,43 +281,7 @@ def edit(config_name):
         console.print("[yellow]Configuration edit cancelled[/yellow]")
 
 
-@cli.group()
-def download():
-    """Download configurations and images from URLs"""
-    pass
-
-
-@download.command()
-@click.argument("url")
-@click.option("--name", "-n", help="Name to save the configuration as")
-@click.option(
-    "--force",
-    "-f",
-    is_flag=True,
-    help="Overwrite existing configuration without asking",
-)
-@click.option(
-    "--info", "-i", is_flag=True, help="Show download info before downloading"
-)
-def config(url, name, force, info):
-    """Download a configuration file from a URL"""
-    downloader = FluxDownloader()
-
-    if info:
-        download_info = downloader.get_download_info(url)
-        if not download_info:
-            return
-
-        if not Confirm.ask("Proceed with download?", default=True):
-            console.print("[yellow]Download cancelled[/yellow]")
-            return
-
-    success = downloader.download_config(url, name, force)
-    if not success:
-        sys.exit(1)
-
-
-@download.command()
+@cli.command()
 @click.argument("url")
 @click.option("--name", "-n", help="Name to save the image as")
 @click.option(
@@ -326,8 +290,8 @@ def config(url, name, force, info):
 @click.option(
     "--info", "-i", is_flag=True, help="Show download info before downloading"
 )
-def image(url, name, force, info):
-    """Download a container image from a URL"""
+def pull(url, name, force, info):
+    """Pull (download) a container image from a URL"""
     downloader = FluxDownloader()
 
     if info:
@@ -342,13 +306,6 @@ def image(url, name, force, info):
     success = downloader.download_image(url, name, force)
     if not success:
         sys.exit(1)
-
-
-@download.command()
-def history():
-    """Show download history"""
-    downloader = FluxDownloader()
-    downloader.list_downloads()
 
 
 def main():

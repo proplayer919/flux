@@ -13,8 +13,7 @@
 - **Volume Mounting**: Mount host directories into containers
 - **X11 Forwarding**: Run GUI applications inside containers with X11 support
 - **Build State Management**: Resume interrupted builds with state persistence
-- **URL Downloads**: Download configurations and images directly from URLs
-- **Download History**: Track and manage downloaded files
+- **Image Pulling**: Pull (download) container images directly from URLs
 - **Rich CLI Interface**: Beautiful, user-friendly command-line interface using Rich
 
 ## 📋 Requirements
@@ -124,44 +123,23 @@ flux show mycontainer
 ### Delete a Configuration
 
 ```bash
-python3 cli.py delete mycontainer
+flux delete mycontainer
 ```
 
-### Download from URLs
-
-#### Download a Configuration
+### Pull Container Images
 
 ```bash
-# Download a configuration from a URL
-python3 cli.py download config https://example.com/config.json
+# Pull a container image from a URL
+flux pull https://example.com/image.tar.gz
 
-# Download with a custom name
-python3 cli.py download config https://example.com/config.json --name myconfig
+# Pull with a custom name
+flux pull https://example.com/image.tar.gz --name myimage
 
-# Show download info before downloading
-python3 cli.py download config https://example.com/config.json --info
+# Show download info before pulling
+flux pull https://example.com/image.tar.gz --info
 
-# Force overwrite existing configuration
-python3 cli.py download config https://example.com/config.json --force
-```
-
-#### Download a Container Image
-
-```bash
-# Download a container image
-python3 cli.py download image https://example.com/image.tar.gz
-
-# Download with a custom name
-python3 cli.py download image https://example.com/image.tar.gz --name myimage.tar.gz
-
-# Show download info before downloading
-python3 cli.py download image https://example.com/image.tar.gz --info
-```
-
-#### View Download History
-
-```bash
-python3 cli.py download history
+# Force overwrite existing image
+flux pull https://example.com/image.tar.gz --force
 ```
 
 ## 🏗️ Configuration Format
